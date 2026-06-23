@@ -1,0 +1,38 @@
+RAVI KUMAR
+Bangalore, India | ravi.kumar@email.com | +91-9876543210
+linkedin.com/in/ravikumar | github.com/ravikumar
+
+EDUCATION
+B.Tech in Computer Science, IIIT Hyderabad
+2021 - 2025, CGPA: 8.7/10
+
+EXPERIENCE
+Backend Engineering Intern, Razorpay
+June 2024 - August 2024
+- Built REST APIs using Python and FastAPI for payment reconciliation
+- Optimized PostgreSQL queries, reducing average response time by 30%
+- Worked with Docker and deployed services on AWS EC2
+
+Software Development Intern, Zoho Corporation
+December 2023 - February 2024
+- Developed internal tools using Java and Spring Boot
+- Implemented unit tests with JUnit, improving code coverage to 85%
+
+PROJECTS
+Resume Screener with Hybrid Scoring Engine
+- Built a multi-signal resume scoring system using FastAPI, PostgreSQL, and sentence-transformers
+- Implemented skill-graph matching, semantic similarity, and experience weighting
+- Deployed using Docker on Render with Neon PostgreSQL
+
+E-commerce Recommendation System
+- Built a collaborative filtering recommender using Python and Scikit-learn
+- Used Redis for caching frequently accessed recommendations
+
+SKILLS
+Languages: Python, Java, JavaScript, SQL
+Frameworks: FastAPI, Spring Boot, React, Flask
+Tools: Docker, Git, AWS, PostgreSQL, Redis, K8s
+ML/AI: Scikit-learn, Sentence-Transformers, Pandas, NumPy
+
+CERTIFICATIONS
+AWS Certified Cloud Practitioner, 2024
