@@ -1,0 +1,7 @@
+{
+  "scoring_weights": {
+    "w1_skill": 0.45,
+    "w2_semantic": 0.35,
+    "w3_experience": 0.20
+  }
+}
