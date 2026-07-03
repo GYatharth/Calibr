@@ -19,9 +19,13 @@ class JDRequest(BaseModel):
 
 
 class SingleScoreRequest(BaseModel):
-    """Request body for scoring one resume against a JD."""
-    jd_text: str
-    resume_text: str  # raw extracted text (client handles PDF extraction for now)
+    """
+    Request body for scoring one resume against a JD.
+    jd_id references a JD already uploaded via POST /jd.
+    resume_text is raw extracted text — client handles PDF extraction.
+    """
+    jd_id: int
+    resume_text: str
 
 
 # ── Response schemas ──────────────────────────────────────────────────────────
