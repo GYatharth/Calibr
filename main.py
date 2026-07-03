@@ -9,24 +9,18 @@ from sqlalchemy.orm import Session
 from app.db.database import engine, Base, SessionLocal
 from app.db import models
 from app.api.scoring_router import router as scoring_router
+from app.api.auth_router import router as auth_router
 
-# Create all tables on startup if they don't exist
 Base.metadata.create_all(bind=engine)
 
 
 def create_default_jd():
-    """
-    Creates a placeholder JD with id=1 if it doesn't exist.
-    This unblocks the /score endpoint until the proper JD upload
-    endpoint is built on Day 12.
-    """
     db: Session = SessionLocal()
     try:
         existing = db.query(models.JobDescription).filter(
             models.JobDescription.id == 1
         ).first()
         if not existing:
-            # Need a dummy user first since JD has owner_id FK
             user = db.query(models.User).filter(models.User.id == 1).first()
             if not user:
                 user = models.User(
@@ -63,6 +57,7 @@ def startup_event():
 
 
 # Register routers
+app.include_router(auth_router)
 app.include_router(scoring_router)
 
 
