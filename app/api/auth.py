@@ -1,14 +1,15 @@
 """
-Day 12: Authentication utilities.
+Day 20-21: Authentication utilities.
 
 Handles:
 - Password hashing (bcrypt directly — passlib removed due to
   compatibility issues with bcrypt 5.x on Python 3.14)
-- JWT token creation and verification
+- JWT access token creation and verification (30 min expiry)
+- JWT refresh token creation (7 day expiry)
 - Current user dependency for protected routes
 
-Design: JWT access tokens, short expiry (30 mins).
-Refresh tokens come in the security hardening pass (Day 20-21).
+Design: short-lived access tokens limit damage from token theft.
+Refresh tokens allow re-issuing access tokens without re-login.
 """
 
 import os
@@ -31,6 +32,7 @@ load_dotenv()
 SECRET_KEY = os.getenv("SECRET_KEY", "change-this-in-production-never-hardcode")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
+REFRESH_TOKEN_EXPIRE_DAYS = 7
 
 # ── Password hashing ──────────────────────────────────────────────────────────
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
@@ -51,12 +53,32 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 # ── JWT ───────────────────────────────────────────────────────────────────────
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
+    """
+    Creates a short-lived access token (default 30 mins).
+    Sent on every request in the Authorization header.
+    Short expiry limits damage if token is stolen.
+    """
     to_encode = data.copy()
     expire = datetime.utcnow() + (
         expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     )
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
+
+def create_refresh_token(data: dict) -> str:
+    """
+    Creates a longer-lived refresh token (7 days).
+    Used to issue new access tokens without requiring re-login.
+    Only sent once at login — not on every request.
+    If an access token is stolen, it expires in 30 mins.
+    If a refresh token is stolen, it lasts 7 days — so store
+    it securely (httpOnly cookie in production, never localStorage).
+    """
+    return create_access_token(
+        data=data,
+        expires_delta=timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+    )
 
 
 def get_current_user(

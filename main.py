@@ -4,8 +4,12 @@ Calibr — main FastAPI application entry point.
 Run with: uvicorn main:app --reload
 """
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 from sqlalchemy.orm import Session
+
 from app.db.database import engine, Base, SessionLocal
 from app.db import models
 from app.api.scoring_router import router as scoring_router
@@ -14,16 +18,12 @@ from app.api.jd_router import router as jd_router
 from app.api.batch_router import router as batch_router
 from app.api.rankings_router import router as rankings_router
 from app.api.candidate_router import router as candidate_router
+from app.api.rate_limiter import limiter
 
 Base.metadata.create_all(bind=engine)
 
 
 def create_default_jd():
-    """
-    Creates a placeholder user+JD with id=1 if they don't exist.
-    This is a dev convenience — in production, all JDs are created
-    via the /jd endpoint by authenticated users.
-    """
     db: Session = SessionLocal()
     try:
         user = db.query(models.User).filter(models.User.id == 1).first()
@@ -59,6 +59,10 @@ app = FastAPI(
     version="0.1.0",
 )
 
+# Attach rate limiter to app
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
 
 @app.on_event("startup")
 def startup_event():
@@ -72,6 +76,7 @@ app.include_router(scoring_router)
 app.include_router(batch_router)
 app.include_router(rankings_router)
 app.include_router(candidate_router)
+
 
 @app.get("/")
 def root():

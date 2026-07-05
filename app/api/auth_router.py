@@ -1,12 +1,8 @@
 """
-Day 12: Auth endpoints — signup and login.
-
-POST /auth/signup  — create a new user account
-POST /auth/login   — returns a JWT access token
-GET  /auth/me      — returns current user info (protected route test)
+Day 20-21: Auth endpoints with rate limiting and refresh tokens.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
@@ -17,13 +13,14 @@ from app.api.auth import (
     hash_password,
     verify_password,
     create_access_token,
+    create_refresh_token,
     get_current_user,
 )
+from app.api.rate_limiter import limiter
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
-# ── Schemas (kept here since they're auth-specific) ───────────────────────────
 class SignupRequest(BaseModel):
     email: str
     password: str
@@ -31,6 +28,7 @@ class SignupRequest(BaseModel):
 
 class TokenResponse(BaseModel):
     access_token: str
+    refresh_token: str
     token_type: str
 
 
@@ -43,13 +41,8 @@ class UserResponse(BaseModel):
         from_attributes = True
 
 
-# ── Endpoints ─────────────────────────────────────────────────────────────────
 @router.post("/signup", response_model=UserResponse, status_code=201)
 def signup(request: SignupRequest, db: Session = Depends(get_db)):
-    """
-    Create a new recruiter account.
-    Rejects duplicate emails immediately with a clear 400 error.
-    """
     existing = db.query(models.User).filter(
         models.User.email == request.email
     ).first()
@@ -58,7 +51,6 @@ def signup(request: SignupRequest, db: Session = Depends(get_db)):
             status_code=400,
             detail="An account with this email already exists."
         )
-
     user = models.User(
         email=request.email,
         hashed_password=hash_password(request.password),
@@ -70,14 +62,18 @@ def signup(request: SignupRequest, db: Session = Depends(get_db)):
 
 
 @router.post("/login", response_model=TokenResponse)
+@limiter.limit("10/minute")
 def login(
+    request: Request,
     form_data: OAuth2PasswordRequestForm = Depends(),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
-    Login with email + password, returns a JWT access token.
-    Uses OAuth2PasswordRequestForm so it works directly with
-    FastAPI's built-in Swagger UI auth button.
+    Login with email + password.
+    Returns:
+    - access_token (30 min expiry) — send on every request
+    - refresh_token (7 day expiry) — use to get new access token
+    Rate limited: 10 requests/minute per IP — brute force prevention.
     """
     user = db.query(models.User).filter(
         models.User.email == form_data.username
@@ -90,14 +86,15 @@ def login(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    token = create_access_token(data={"sub": user.email})
-    return {"access_token": token, "token_type": "bearer"}
+    access_token = create_access_token(data={"sub": user.email})
+    refresh_token = create_refresh_token(data={"sub": user.email})
+    return {
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "token_type": "bearer"
+    }
 
 
 @router.get("/me", response_model=UserResponse)
 def get_me(current_user: models.User = Depends(get_current_user)):
-    """
-    Protected route — returns the currently logged-in user's info.
-    Tests that JWT verification is working end to end.
-    """
     return current_user
