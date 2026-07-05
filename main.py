@@ -5,6 +5,7 @@ Run with: uvicorn main:app --reload
 """
 
 from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
@@ -57,6 +58,15 @@ app = FastAPI(
     title="Calibr",
     description="Hybrid resume screening with multi-signal scoring",
     version="0.1.0",
+)
+
+# CORS — allow React frontend to talk to the API
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Attach rate limiter to app
