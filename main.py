@@ -11,6 +11,7 @@ from app.db import models
 from app.api.scoring_router import router as scoring_router
 from app.api.auth_router import router as auth_router
 from app.api.jd_router import router as jd_router
+from app.api.batch_router import router as batch_router
 
 Base.metadata.create_all(bind=engine)
 
@@ -66,7 +67,7 @@ def startup_event():
 app.include_router(auth_router)
 app.include_router(jd_router)
 app.include_router(scoring_router)
-
+app.include_router(batch_router)
 
 @app.get("/")
 def root():
