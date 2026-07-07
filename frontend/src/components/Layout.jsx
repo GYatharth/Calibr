@@ -47,6 +47,12 @@ export default function Layout({ children }) {
             BATCH
           </span>
           <span
+  onClick={() => navigate('/analytics')}
+  style={{ fontSize: '13px', color: '#6b5e47', cursor: 'pointer', letterSpacing: '1px' }}
+>
+  ANALYTICS
+</span>
+          <span
             onClick={() => navigate('/dashboard')}
             style={{ fontSize: '13px', color: '#6b5e47', cursor: 'pointer', letterSpacing: '1px' }}
           >

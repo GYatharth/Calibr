@@ -24,6 +24,7 @@ from app.api.upload_router import router as upload_router
 from app.api.interview_router import router as interview_router
 from app.api.notes_router import router as notes_router
 from app.api.skill_gap_router import router as skill_gap_router
+from app.api.analytics_router import router as analytics_router
 
 Base.metadata.create_all(bind=engine)
 
@@ -94,6 +95,7 @@ app.include_router(upload_router)
 app.include_router(interview_router)
 app.include_router(notes_router)
 app.include_router(skill_gap_router)
+app.include_router(analytics_router)
 
 @app.get("/")
 def root():
