@@ -11,6 +11,10 @@ export default function Breakdown() {
   const [error, setError] = useState('')
   const [questions, setQuestions] = useState(null)
   const [loadingQ, setLoadingQ] = useState(false)
+  const [notes, setNotes] = useState('')
+  const [status, setStatus] = useState('pending')
+  const [savingNotes, setSavingNotes] = useState(false)
+  const [notesSaved, setNotesSaved] = useState(false)
 
   useEffect(() => {
     fetchBreakdown()
@@ -20,10 +24,35 @@ export default function Breakdown() {
     try {
       const res = await client.get(`/candidates/${candidateId}/breakdown`)
       setData(res.data)
+      setStatus(res.data.status || 'pending')
+      setNotes(res.data.recruiter_notes || '')
     } catch (err) {
       setError('Failed to load breakdown')
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function updateStatus(newStatus) {
+    try {
+      await client.patch(`/candidates/${candidateId}/status`, { status: newStatus })
+      setStatus(newStatus)
+    } catch (err) {
+      console.error('Failed to update status')
+    }
+  }
+
+  async function saveNotes() {
+    setSavingNotes(true)
+    setNotesSaved(false)
+    try {
+      await client.patch(`/candidates/${candidateId}/notes`, { notes })
+      setNotesSaved(true)
+      setTimeout(() => setNotesSaved(false), 2000)
+    } catch (err) {
+      console.error('Failed to save notes')
+    } finally {
+      setSavingNotes(false)
     }
   }
 
@@ -191,6 +220,79 @@ export default function Breakdown() {
               <p style={{ color: '#6b5e47', fontSize: '14px', lineHeight: '1.8', margin: 0 }}>{data.explanation}</p>
             </div>
           )}
+
+          {/* Recruiter Actions */}
+          <div style={card}>
+            <h3 style={{ fontFamily: 'Georgia, serif', color: '#2c2416', marginTop: 0, fontSize: '16px' }}>
+              Recruiter Actions
+            </h3>
+
+            {/* Status */}
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', fontSize: '11px', color: '#6b5e47', letterSpacing: '1px', marginBottom: '8px' }}>
+                CANDIDATE STATUS
+              </label>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                {[
+                  { value: 'shortlisted', label: '✓ Shortlist', activeColor: '#3a6b2a', activeBg: '#e8f0e5', border: '#a8c8a0' },
+                  { value: 'pending', label: '• Pending', activeColor: '#6b5e47', activeBg: '#f0ebe0', border: '#c8bea8' },
+                  { value: 'rejected', label: '✗ Reject', activeColor: '#8b3a2a', activeBg: '#f5e8e5', border: '#c8a898' },
+                ].map(s => (
+                  <button
+                    key={s.value}
+                    onClick={() => updateStatus(s.value)}
+                    style={{
+                      padding: '8px 16px', fontSize: '12px', letterSpacing: '1px',
+                      borderRadius: '6px', border: `1px solid ${s.border}`,
+                      cursor: 'pointer',
+                      background: status === s.value ? s.activeBg : '#f0ebe0',
+                      color: status === s.value ? s.activeColor : '#9c8e76',
+                      fontWeight: status === s.value ? '500' : 'normal',
+                    }}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Notes */}
+            <div>
+              <label style={{ display: 'block', fontSize: '11px', color: '#6b5e47', letterSpacing: '1px', marginBottom: '8px' }}>
+                RECRUITER NOTES
+              </label>
+              <textarea
+                value={notes}
+                onChange={e => setNotes(e.target.value)}
+                rows={4}
+                placeholder="Add private notes about this candidate..."
+                style={{
+                  width: '100%', background: '#f0ebe0', border: '1px solid #c8bea8',
+                  borderRadius: '6px', padding: '10px 12px', fontSize: '13px',
+                  color: '#2c2416', outline: 'none', resize: 'vertical',
+                  boxSizing: 'border-box', fontFamily: 'system-ui, sans-serif',
+                  lineHeight: '1.6',
+                }}
+              />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '8px' }}>
+                <button
+                  onClick={saveNotes}
+                  disabled={savingNotes}
+                  style={{
+                    background: savingNotes ? '#9c8e76' : '#2c2416',
+                    color: '#f0ebe0', border: 'none', borderRadius: '6px',
+                    padding: '7px 18px', fontSize: '11px', letterSpacing: '1px',
+                    cursor: savingNotes ? 'default' : 'pointer',
+                  }}
+                >
+                  {savingNotes ? 'SAVING...' : 'SAVE NOTES'}
+                </button>
+                {notesSaved && (
+                  <span style={{ fontSize: '12px', color: '#3a6b2a' }}>✓ Notes saved</span>
+                )}
+              </div>
+            </div>
+          </div>
 
           {/* Interview Questions */}
           <div style={card}>

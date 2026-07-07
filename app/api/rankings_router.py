@@ -27,6 +27,7 @@ class CandidateRanking(BaseModel):
     experience_gap: str
     explanation: Optional[str] = None
     candidate_summary: Optional[str] = None
+    status: Optional[str] = "pending"
     scored_at: datetime
 
 
@@ -81,6 +82,7 @@ def get_rankings(
             "experience_gap": "check_score" if score.missing_skills else "n/a",
             "explanation": explanation_text,
             "candidate_summary": summary_text,
+            "status": candidate.status or "pending",
             "scored_at": score.computed_at,
         })
 

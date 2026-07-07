@@ -25,6 +25,21 @@ export default function Rankings() {
     }
   }
 
+  async function updateStatus(candidateId, status) {
+    try {
+      await client.patch(`/candidates/${candidateId}/status`, { status })
+      // Update local state so UI reflects immediately without refetch
+      setRankings(prev => ({
+        ...prev,
+        candidates: prev.candidates.map(c =>
+          c.candidate_id === candidateId ? { ...c, status } : c
+        )
+      }))
+    } catch (err) {
+      console.error('Failed to update status')
+    }
+  }
+
   const card = {
     background: '#e5dfd2',
     border: '1px solid #c8bea8',
@@ -157,8 +172,33 @@ export default function Rankings() {
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <ScorePill score={candidate.composite_score} />
+
+                  {/* Status buttons */}
+                  <div style={{ display: 'flex', gap: '4px' }}>
+                    {['shortlisted', 'pending', 'rejected'].map(s => (
+                      <button
+                        key={s}
+                        onClick={() => updateStatus(candidate.candidate_id, s)}
+                        style={{
+                          padding: '4px 8px', fontSize: '10px', letterSpacing: '0.5px',
+                          borderRadius: '4px', border: '1px solid',
+                          cursor: 'pointer',
+                          background: candidate.status === s
+                            ? s === 'shortlisted' ? '#3a6b2a'
+                              : s === 'rejected' ? '#8b3a2a' : '#6b5e47'
+                            : '#f0ebe0',
+                          color: candidate.status === s ? '#f0ebe0' : '#9c8e76',
+                          borderColor: s === 'shortlisted' ? '#a8c8a0'
+                            : s === 'rejected' ? '#c8a898' : '#c8bea8',
+                        }}
+                      >
+                        {s === 'shortlisted' ? '✓' : s === 'rejected' ? '✗' : '•'}
+                      </button>
+                    ))}
+                  </div>
+
                   <button
                     onClick={() => navigate(`/breakdown/${candidate.candidate_id}`)}
                     style={{

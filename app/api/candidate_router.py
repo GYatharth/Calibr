@@ -1,11 +1,5 @@
 """
-Day 16: Candidate score breakdown endpoint.
-
-GET /candidates/{candidate_id}/breakdown
-  - Returns full score breakdown for one candidate
-  - Shows all three signals separately + explanation
-  - This is the "why did this candidate rank here" view
-  - Auth required, ownership enforced via JD
+Candidate score breakdown endpoint — updated with status and notes.
 """
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -21,7 +15,6 @@ from app.api.auth import get_current_user
 router = APIRouter(prefix="/candidates", tags=["candidates"])
 
 
-# ── Schemas ───────────────────────────────────────────────────────────────────
 class ScoreBreakdownResponse(BaseModel):
     candidate_id: int
     jd_id: int
@@ -31,22 +24,17 @@ class ScoreBreakdownResponse(BaseModel):
     missing_skills: list[str]
     total_experience_months: int
     explanation: Optional[str] = None
+    status: Optional[str] = "pending"
+    recruiter_notes: Optional[str] = None
     scored_at: datetime
 
 
-# ── Endpoint ──────────────────────────────────────────────────────────────────
-@router.get("/{candidate_id}/breakdown",
-            response_model=ScoreBreakdownResponse)
+@router.get("/{candidate_id}/breakdown", response_model=ScoreBreakdownResponse)
 def get_score_breakdown(
     candidate_id: int,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    """
-    Get full score breakdown for one candidate.
-    Shows each signal score separately so the recruiter understands
-    exactly why the candidate ranked where they did.
-    """
     candidate = db.query(models.Candidate).filter(
         models.Candidate.id == candidate_id
     ).first()
@@ -54,7 +42,6 @@ def get_score_breakdown(
     if not candidate:
         raise HTTPException(status_code=404, detail="Candidate not found")
 
-    # Ownership check via JD
     jd = db.query(models.JobDescription).filter(
         models.JobDescription.id == candidate.jd_id,
         models.JobDescription.owner_id == current_user.id,
@@ -110,5 +97,7 @@ def get_score_breakdown(
         missing_skills=score.missing_skills or [],
         total_experience_months=candidate.total_experience_months or 0,
         explanation=explanation_text,
+        status=candidate.status or "pending",
+        recruiter_notes=candidate.recruiter_notes,
         scored_at=score.computed_at,
     )

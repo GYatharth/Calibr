@@ -56,6 +56,8 @@ class Candidate(Base):
     extracted_skills       = Column(JSON)
     extracted_experience   = Column(JSON)
     total_experience_months = Column(Integer)
+    status                  = Column(String, default="pending")  # pending/shortlisted/rejected
+    recruiter_notes         = Column(Text, nullable=True)
     parsed_at              = Column(DateTime, default=datetime.utcnow)
 
     job_description = relationship("JobDescription", back_populates="candidates")
