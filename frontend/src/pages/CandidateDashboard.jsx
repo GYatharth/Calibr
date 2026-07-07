@@ -13,6 +13,8 @@ export default function CandidateDashboard() {
   const [result, setResult] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [questions, setQuestions] = useState(null)
+  const [loadingQ, setLoadingQ] = useState(false)
 
   useEffect(() => {
     fetchJds()
@@ -67,6 +69,7 @@ export default function CandidateDashboard() {
     setLoading(true)
     setError('')
     setResult(null)
+    setQuestions(null)
     try {
       const res = await client.post('/score', {
         jd_id: parseInt(jdId),
@@ -80,12 +83,47 @@ export default function CandidateDashboard() {
     }
   }
 
+  async function fetchInterviewQuestions() {
+    setLoadingQ(true)
+    try {
+      const res = await client.get(`/interview/${result.candidate_id}`)
+      setQuestions(res.data)
+    } catch (err) {
+      setError('Failed to generate interview questions')
+    } finally {
+      setLoadingQ(false)
+    }
+  }
+
   const card = {
     background: '#e5dfd2',
     border: '1px solid #c8bea8',
     borderRadius: '8px',
     padding: '24px',
     marginBottom: '16px',
+  }
+
+  function QuestionSection({ title, questions, color, bg, border }) {
+    return (
+      <div style={{ marginBottom: '20px' }}>
+        <h4 style={{
+          fontFamily: 'Georgia, serif', fontSize: '14px',
+          color, margin: '0 0 10px',
+        }}>{title}</h4>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {questions.map((q, i) => (
+            <div key={i} style={{
+              background: bg, border: `1px solid ${border}`,
+              borderRadius: '6px', padding: '10px 14px',
+              fontSize: '13px', color: '#4a3c2a', lineHeight: '1.5'
+            }}>
+              <span style={{ color, fontWeight: '500', marginRight: '8px' }}>{i + 1}.</span>
+              {q}
+            </div>
+          ))}
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -261,6 +299,54 @@ export default function CandidateDashboard() {
               <p style={{ color: '#6b5e47', fontSize: '14px', lineHeight: '1.8', margin: 0 }}>
                 {result.explanation}
               </p>
+            </div>
+
+            {/* Interview Questions */}
+            <div style={card}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: questions ? '20px' : '0' }}>
+                <div>
+                  <h3 style={{ fontFamily: 'Georgia, serif', color: '#2c2416', margin: 0, fontSize: '16px' }}>
+                    Practice Interview Questions
+                  </h3>
+                  <p style={{ color: '#9c8e76', fontSize: '12px', margin: '4px 0 0' }}>
+                    AI-generated questions tailored to your profile against this role
+                  </p>
+                </div>
+                {!questions && (
+                  <button
+                    onClick={fetchInterviewQuestions}
+                    disabled={loadingQ}
+                    style={{
+                      background: loadingQ ? '#9c8e76' : '#2c2416',
+                      color: '#f0ebe0', border: 'none', borderRadius: '6px',
+                      padding: '8px 18px', fontSize: '11px', letterSpacing: '1px',
+                      cursor: loadingQ ? 'default' : 'pointer', whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {loadingQ ? 'GENERATING...' : 'GENERATE QUESTIONS'}
+                  </button>
+                )}
+              </div>
+
+              {questions && (
+                <>
+                  <QuestionSection
+                    title="Technical Questions (based on your matched skills)"
+                    questions={questions.technical}
+                    color="#3a6b2a" bg="#e8f0e5" border="#a8c8a0"
+                  />
+                  <QuestionSection
+                    title="Gap Questions (probing your missing skills)"
+                    questions={questions.gap}
+                    color="#8b7a2a" bg="#f0ece0" border="#c8c0a0"
+                  />
+                  <QuestionSection
+                    title="Behavioral Questions"
+                    questions={questions.behavioral}
+                    color="#2c2416" bg="#f0ebe0" border="#c8bea8"
+                  />
+                </>
+              )}
             </div>
           </>
         )}

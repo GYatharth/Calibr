@@ -38,6 +38,7 @@ class SignalBreakdown(BaseModel):
 
 class ScoreResponse(BaseModel):
     """Full scoring result returned to the client."""
+    candidate_id: Optional[int] = None
     composite_score: float
     skill_score: float
     semantic_score: float

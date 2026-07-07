@@ -38,11 +38,14 @@ def score_resume(
     Rate limited: 10 requests/minute per IP.
     """
     try:
-        # Ownership check — IDOR prevention
-        jd = db.query(models.JobDescription).filter(
-            models.JobDescription.id == body.jd_id,
-            models.JobDescription.owner_id == current_user.id,
-        ).first()
+        # Recruiters may only score against JDs they own. Candidates score
+        # against any published JD (they browse the public JD list).
+        jd_query = db.query(models.JobDescription).filter(
+            models.JobDescription.id == body.jd_id
+        )
+        if current_user.role == "recruiter":
+            jd_query = jd_query.filter(models.JobDescription.owner_id == current_user.id)
+        jd = jd_query.first()
         if not jd:
             raise HTTPException(
                 status_code=404,
@@ -94,6 +97,7 @@ def score_resume(
         db.commit()
 
         return ScoreResponse(
+            candidate_id=candidate.id,
             composite_score=score_data["composite_score"],
             skill_score=score_data["skill_score"],
             semantic_score=score_data["semantic_score"],

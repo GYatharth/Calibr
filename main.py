@@ -21,6 +21,7 @@ from app.api.rankings_router import router as rankings_router
 from app.api.candidate_router import router as candidate_router
 from app.api.rate_limiter import limiter
 from app.api.upload_router import router as upload_router
+from app.api.interview_router import router as interview_router
 
 Base.metadata.create_all(bind=engine)
 
@@ -88,6 +89,7 @@ app.include_router(batch_router)
 app.include_router(rankings_router)
 app.include_router(candidate_router)
 app.include_router(upload_router)
+app.include_router(interview_router)
 
 @app.get("/")
 def root():

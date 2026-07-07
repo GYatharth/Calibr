@@ -153,6 +153,67 @@ Write ONLY the one sentence. No prefix, no punctuation at start, no explanation.
     except Exception as e:
         return f"Score: {score_data['composite_score']}/100"
 
+def generate_interview_questions(score_data: dict, jd_data: dict, resume_data: dict) -> dict:
+    """
+    Generates tailored interview questions based on the candidate's
+    specific profile against the JD.
+
+    Returns three categories:
+    - technical: questions on matched skills (what they know)
+    - gap: questions on missing skills (probing depth)
+    - behavioral: standard HR questions tailored to the role
+    """
+    api_key = os.getenv("GROQ_API_KEY")
+    if not api_key:
+        return {"technical": [], "gap": [], "behavioral": []}
+
+    client = Groq(api_key=api_key)
+
+    matched = ", ".join(score_data["matched_skills"][:6]) or "none"
+    missing = ", ".join(score_data["missing_skills"][:4]) or "none"
+    total_months = resume_data.get("total_experience_months", 0)
+    years = round(total_months / 12, 1)
+    required_skills = ", ".join(jd_data.get("required_skills", [])[:8])
+
+    prompt = f"""Generate interview questions for a candidate applying for a backend engineering role.
+
+Candidate profile:
+- Experience: {years} years
+- Matched skills: {matched}
+- Missing skills: {missing}
+- JD required skills: {required_skills}
+- ATS Score: {score_data['composite_score']}/100
+
+Generate exactly:
+1. 3 technical questions (based on their matched skills — test depth of knowledge)
+2. 2 gap questions (probe the missing skills gently — assess learning ability)
+3. 2 behavioral questions (tailored to the role and experience level)
+
+Respond ONLY in this exact JSON format, no other text:
+{{
+  "technical": ["question1", "question2", "question3"],
+  "gap": ["question1", "question2"],
+  "behavioral": ["question1", "question2"]
+}}"""
+
+    try:
+        response = client.chat.completions.create(
+            model="llama-3.1-8b-instant",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=500,
+            temperature=0.5,
+        )
+        text = response.choices[0].message.content.strip()
+        # Clean up markdown code blocks if present
+        text = text.replace("```json", "").replace("```", "").strip()
+        import json
+        return json.loads(text)
+    except Exception as e:
+        return {
+            "technical": ["Tell me about your experience with the technologies in your resume."],
+            "gap": ["How would you approach learning a new technology quickly?"],
+            "behavioral": ["Describe a challenging project you worked on."]
+        }
 
 if __name__ == "__main__":
     from semantic_similarity import semantic_similarity_score
