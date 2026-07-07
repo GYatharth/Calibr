@@ -215,6 +215,53 @@ Respond ONLY in this exact JSON format, no other text:
             "behavioral": ["Describe a challenging project you worked on."]
         }
 
+def generate_skill_recommendations(missing_skills: list, jd_data: dict) -> list:
+    """
+    For each missing skill, generates learning resource recommendations
+    as search queries — not direct URLs (which LLMs hallucinate).
+    Returns a list of dicts: {skill, why_important, search_queries}
+    """
+    if not missing_skills:
+        return []
+
+    api_key = os.getenv("GROQ_API_KEY")
+    if not api_key:
+        return []
+
+    client = Groq(api_key=api_key)
+
+    skills_list = ", ".join(missing_skills[:6])
+    role = "backend engineer"
+
+    prompt = f"""For a {role} job, these skills are missing from the candidate's resume: {skills_list}
+
+For each skill, provide:
+1. Why it's important for this role (1 sentence)
+2. 2 specific search queries to find free learning resources
+
+Respond ONLY in this exact JSON format, no other text:
+[
+  {{
+    "skill": "skill name",
+    "why_important": "one sentence explanation",
+    "search_queries": ["YouTube query 1", "Coursera/doc query 2"]
+  }}
+]"""
+
+    try:
+        response = client.chat.completions.create(
+            model="llama-3.1-8b-instant",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=600,
+            temperature=0.3,
+        )
+        text = response.choices[0].message.content.strip()
+        text = text.replace("```json", "").replace("```", "").strip()
+        import json
+        return json.loads(text)
+    except Exception as e:
+        return [{"skill": s, "why_important": "Required for this role", "search_queries": [f"learn {s} tutorial", f"{s} for beginners free course"]} for s in missing_skills[:4]]
+
 if __name__ == "__main__":
     from semantic_similarity import semantic_similarity_score
 

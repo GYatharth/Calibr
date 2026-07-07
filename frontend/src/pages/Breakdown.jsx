@@ -15,6 +15,8 @@ export default function Breakdown() {
   const [status, setStatus] = useState('pending')
   const [savingNotes, setSavingNotes] = useState(false)
   const [notesSaved, setNotesSaved] = useState(false)
+  const [skillGap, setSkillGap] = useState(null)
+  const [loadingGap, setLoadingGap] = useState(false)
 
   useEffect(() => {
     fetchBreakdown()
@@ -65,6 +67,18 @@ export default function Breakdown() {
       setError('Failed to generate interview questions')
     } finally {
       setLoadingQ(false)
+    }
+  }
+
+  async function fetchSkillGap() {
+    setLoadingGap(true)
+    try {
+      const res = await client.get(`/skill-gap/${candidateId}`)
+      setSkillGap(res.data)
+    } catch (err) {
+      console.error('Failed to load skill gap')
+    } finally {
+      setLoadingGap(false)
     }
   }
 
@@ -220,6 +234,76 @@ export default function Breakdown() {
               <p style={{ color: '#6b5e47', fontSize: '14px', lineHeight: '1.8', margin: 0 }}>{data.explanation}</p>
             </div>
           )}
+
+          {/* Skill Gap Analysis */}
+          <div style={card}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: skillGap ? '20px' : '0' }}>
+              <div>
+                <h3 style={{ fontFamily: 'Georgia, serif', color: '#2c2416', margin: 0, fontSize: '16px' }}>
+                  Skill Gap Analysis
+                </h3>
+                <p style={{ color: '#9c8e76', fontSize: '12px', margin: '4px 0 0' }}>
+                  Learning resources for missing skills
+                </p>
+              </div>
+              {!skillGap && (
+                <button
+                  onClick={fetchSkillGap}
+                  disabled={loadingGap}
+                  style={{
+                    background: loadingGap ? '#9c8e76' : '#2c2416',
+                    color: '#f0ebe0', border: 'none', borderRadius: '6px',
+                    padding: '8px 18px', fontSize: '11px', letterSpacing: '1px',
+                    cursor: loadingGap ? 'default' : 'pointer', whiteSpace: 'nowrap',
+                  }}
+                >
+                  {loadingGap ? 'ANALYSING...' : 'ANALYSE GAPS'}
+                </button>
+              )}
+            </div>
+
+            {skillGap && skillGap.recommendations.length === 0 && (
+              <p style={{ color: '#3a6b2a', fontSize: '13px', margin: 0 }}>
+                ✓ No skill gaps — candidate matches all required skills
+              </p>
+            )}
+
+            {skillGap && skillGap.recommendations.map((rec, i) => (
+              <div key={i} style={{
+                background: '#f0ebe0', border: '1px solid #c8bea8',
+                borderRadius: '6px', padding: '14px 16px', marginBottom: '10px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                  <span style={{
+                    background: '#f5e8e5', border: '1px solid #c8a898',
+                    borderRadius: '4px', padding: '2px 8px',
+                    fontSize: '12px', color: '#8b3a2a', fontWeight: '500'
+                  }}>{rec.skill}</span>
+                </div>
+                <p style={{ fontSize: '13px', color: '#6b5e47', margin: '0 0 8px', lineHeight: '1.5' }}>
+                  {rec.why_important}
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  {rec.search_queries.map((q, j) => (
+                    <a
+                      key={j}
+                      href={`https://www.google.com/search?q=${encodeURIComponent(q)}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{
+                        fontSize: '12px', color: '#2c2416',
+                        textDecoration: 'none',
+                        display: 'flex', alignItems: 'center', gap: '6px',
+                      }}
+                    >
+                      <span style={{ fontSize: '10px', color: '#9c8e76' }}>🔍</span>
+                      <span style={{ borderBottom: '1px solid #c8bea8' }}>{q}</span>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
 
           {/* Recruiter Actions */}
           <div style={card}>
