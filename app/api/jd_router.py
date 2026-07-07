@@ -1,9 +1,5 @@
 """
-Day 13: Job Description endpoints.
-
-POST /jd        — upload a JD (auth required, scoped to current user)
-GET  /jd        — list all JDs belonging to the current user
-GET  /jd/{id}   — get one JD by ID (ownership checked)
+Job Description endpoints — updated with public listing for candidates.
 """
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -23,7 +19,6 @@ from parse_jd import parse_job_description
 router = APIRouter(prefix="/jd", tags=["job descriptions"])
 
 
-# ── Schemas ───────────────────────────────────────────────────────────────────
 class JDCreateRequest(BaseModel):
     raw_text: str
 
@@ -38,20 +33,13 @@ class JDResponse(BaseModel):
         from_attributes = True
 
 
-# ── Endpoints ─────────────────────────────────────────────────────────────────
 @router.post("", response_model=JDResponse, status_code=201)
 def create_jd(
     request: JDCreateRequest,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    """
-    Upload a new job description. Automatically parses required skills
-    and experience years from the raw text using the Day 2 parser.
-    Scoped to the currently logged-in user.
-    """
     parsed = parse_job_description(request.raw_text)
-
     jd = models.JobDescription(
         owner_id=current_user.id,
         raw_text=request.raw_text,
@@ -64,6 +52,22 @@ def create_jd(
     return jd
 
 
+@router.get("/public/all", response_model=list[JDResponse])
+def list_all_jds_public(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    """
+    Returns all job descriptions across all recruiters.
+    Used by candidates to browse available roles.
+    Auth required but not ownership-scoped.
+    Excludes the default placeholder JD (id=1).
+    """
+    return db.query(models.JobDescription).filter(
+        models.JobDescription.id != 1
+    ).order_by(models.JobDescription.created_at.desc()).all()
+
+
 @router.get("", response_model=list[JDResponse])
 def list_jds(
     db: Session = Depends(get_db),
@@ -71,7 +75,7 @@ def list_jds(
 ):
     """
     List all JDs belonging to the current user.
-    Users cannot see each other's JDs — ownership enforced here.
+    Ownership enforced — recruiters only see their own JDs.
     """
     return db.query(models.JobDescription).filter(
         models.JobDescription.owner_id == current_user.id
@@ -84,10 +88,6 @@ def get_jd(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    """
-    Get one JD by ID. Returns 404 if not found, 403 if it belongs
-    to a different user — never leaks that another user's JD exists.
-    """
     jd = db.query(models.JobDescription).filter(
         models.JobDescription.id == jd_id
     ).first()
@@ -95,7 +95,6 @@ def get_jd(
     if not jd:
         raise HTTPException(status_code=404, detail="JD not found")
 
-    # Ownership check — this is the IDOR prevention from the IG post
     if jd.owner_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not authorised to access this JD")
 

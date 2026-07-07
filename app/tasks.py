@@ -1,14 +1,5 @@
 """
-Day 17-18: Celery tasks.
-
-Contains the batch scoring task that runs in a Celery worker process,
-completely separate from the FastAPI server process.
-
-Key difference from BackgroundTasks version (Day 14):
-- This runs in a dedicated worker process (celery worker)
-- Task state is stored in Redis (survives server restarts)
-- Can be monitored via Flower dashboard
-- Can be retried automatically on failure
+Day 17-18: Celery tasks — updated with candidate summary generation.
 """
 
 import sys
@@ -25,7 +16,7 @@ from app.db import models
 from parse_jd import parse_job_description
 from parse_resume import parse_resume
 from composite_score import compute_composite_score
-from explainer import generate_explanation
+from explainer import generate_explanation, generate_candidate_summary
 from semantic_similarity import semantic_similarity_score
 
 
@@ -33,16 +24,10 @@ from semantic_similarity import semantic_similarity_score
 def score_resume_batch(self, job_id: int, jd_id: int, resume_texts: list):
     """
     Celery task: score a batch of resumes against a JD.
-
-    bind=True means the task receives itself as first argument (self),
-    allowing us to update task state and retry on failure.
-
-    This is the Celery-powered replacement for the process_batch()
-    background function in batch_router.py (Day 14).
+    Now also generates a one-line AI summary per candidate.
     """
     db = SessionLocal()
     try:
-        # Update job status to processing
         job = db.query(models.ScoringJob).filter(
             models.ScoringJob.id == job_id
         ).first()
@@ -52,7 +37,6 @@ def score_resume_batch(self, job_id: int, jd_id: int, resume_texts: list):
         job.status = "processing"
         db.commit()
 
-        # Load JD once — reuse for all resumes in this batch
         jd = db.query(models.JobDescription).filter(
             models.JobDescription.id == jd_id
         ).first()
@@ -63,22 +47,20 @@ def score_resume_batch(self, job_id: int, jd_id: int, resume_texts: list):
 
         for i, resume_text in enumerate(resume_texts):
             try:
-                # Score this resume
                 resume_data = parse_resume(resume_text)
                 sem_result = semantic_similarity_score(resume_data, jd_data)
                 score_data = compute_composite_score(
                     resume_data, jd_data, sem_result["semantic_score"]
                 )
                 explanation = generate_explanation(score_data, jd_data)
+                summary = generate_candidate_summary(score_data, resume_data)
 
-                # Persist
                 candidate = models.Candidate(
                     jd_id=jd_id,
                     raw_resume_text=resume_text,
                     extracted_skills=resume_data["skills"],
                     extracted_experience=resume_data["experience"],
-                    total_experience_months=resume_data[
-                        "total_experience_months"],
+                    total_experience_months=resume_data["total_experience_months"],
                 )
                 db.add(candidate)
                 db.flush()
@@ -99,11 +81,11 @@ def score_resume_batch(self, job_id: int, jd_id: int, resume_texts: list):
                 exp_record = models.Explanation(
                     score_id=score.id,
                     explanation_text=explanation,
+                    candidate_summary=summary,
                     missing_skills=score_data["missing_skills"],
                 )
                 db.add(exp_record)
 
-                # Update progress after each resume
                 job.processed_resumes = i + 1
                 db.commit()
 
@@ -113,7 +95,6 @@ def score_resume_batch(self, job_id: int, jd_id: int, resume_texts: list):
                 db.commit()
                 continue
 
-        # Mark complete
         job.status = "done"
         job.completed_at = datetime.utcnow()
         db.commit()
@@ -125,7 +106,6 @@ def score_resume_batch(self, job_id: int, jd_id: int, resume_texts: list):
         }
 
     except Exception as e:
-        # Mark job as failed and retry if possible
         try:
             job = db.query(models.ScoringJob).filter(
                 models.ScoringJob.id == job_id

@@ -1,5 +1,5 @@
 """
-Day 20-21: Auth endpoints with rate limiting and refresh tokens.
+Day 20-21: Auth endpoints with rate limiting, refresh tokens, and roles.
 """
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
@@ -24,18 +24,21 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 class SignupRequest(BaseModel):
     email: str
     password: str
+    role: str = "recruiter"  # "recruiter" or "candidate"
 
 
 class TokenResponse(BaseModel):
     access_token: str
     refresh_token: str
     token_type: str
+    role: str
 
 
 class UserResponse(BaseModel):
     id: int
     email: str
     is_active: bool
+    role: str
 
     class Config:
         from_attributes = True
@@ -43,6 +46,11 @@ class UserResponse(BaseModel):
 
 @router.post("/signup", response_model=UserResponse, status_code=201)
 def signup(request: SignupRequest, db: Session = Depends(get_db)):
+    if request.role not in ["recruiter", "candidate"]:
+        raise HTTPException(
+            status_code=400,
+            detail="Role must be 'recruiter' or 'candidate'"
+        )
     existing = db.query(models.User).filter(
         models.User.email == request.email
     ).first()
@@ -54,6 +62,7 @@ def signup(request: SignupRequest, db: Session = Depends(get_db)):
     user = models.User(
         email=request.email,
         hashed_password=hash_password(request.password),
+        role=request.role,
     )
     db.add(user)
     db.commit()
@@ -70,10 +79,9 @@ def login(
 ):
     """
     Login with email + password.
-    Returns:
-    - access_token (30 min expiry) — send on every request
-    - refresh_token (7 day expiry) — use to get new access token
-    Rate limited: 10 requests/minute per IP — brute force prevention.
+    Returns access_token, refresh_token, and user role.
+    Role is used by the frontend to redirect to the correct dashboard.
+    Rate limited: 10 requests/minute per IP.
     """
     user = db.query(models.User).filter(
         models.User.email == form_data.username
@@ -91,7 +99,8 @@ def login(
     return {
         "access_token": access_token,
         "refresh_token": refresh_token,
-        "token_type": "bearer"
+        "token_type": "bearer",
+        "role": user.role,
     }
 
 

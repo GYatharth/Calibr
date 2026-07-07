@@ -26,6 +26,7 @@ class User(Base):
     email         = Column(String, unique=True, index=True, nullable=False)
     hashed_password = Column(String, nullable=False)
     is_active     = Column(Boolean, default=True)
+    role          = Column(String, default="recruiter")
     created_at    = Column(DateTime, default=datetime.utcnow)
 
     job_descriptions = relationship("JobDescription", back_populates="owner")
@@ -82,11 +83,12 @@ class Score(Base):
 class Explanation(Base):
     __tablename__ = "explanations"
 
-    id               = Column(Integer, primary_key=True, index=True)
-    score_id         = Column(Integer, ForeignKey("scores.id"), nullable=False)
-    explanation_text = Column(Text)
-    missing_skills   = Column(JSON)
-    generated_at     = Column(DateTime, default=datetime.utcnow)
+    id                = Column(Integer, primary_key=True, index=True)
+    score_id          = Column(Integer, ForeignKey("scores.id"), nullable=False)
+    explanation_text  = Column(Text)
+    candidate_summary = Column(Text, nullable=True)
+    missing_skills    = Column(JSON)
+    generated_at      = Column(DateTime, default=datetime.utcnow)
 
     score = relationship("Score", back_populates="explanation")
 

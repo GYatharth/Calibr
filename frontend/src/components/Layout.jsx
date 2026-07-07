@@ -5,6 +5,7 @@ export default function Layout({ children }) {
 
   function logout() {
     localStorage.removeItem('access_token')
+    localStorage.removeItem('user_role')
     navigate('/login')
   }
 
@@ -38,6 +39,12 @@ export default function Layout({ children }) {
             style={{ fontSize: '13px', color: '#6b5e47', cursor: 'pointer', letterSpacing: '1px' }}
           >
             SCORE
+          </span>
+          <span
+            onClick={() => navigate('/batch')}
+            style={{ fontSize: '13px', color: '#6b5e47', cursor: 'pointer', letterSpacing: '1px' }}
+          >
+            BATCH
           </span>
           <span
             onClick={() => navigate('/dashboard')}

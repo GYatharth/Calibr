@@ -79,12 +79,12 @@ export default function Rankings() {
       ) : rankings?.candidates?.length === 0 ? (
         <div style={{ ...card, textAlign: 'center', padding: '48px' }}>
           <p style={{ color: '#9c8e76', fontSize: '14px', margin: 0 }}>
-            No candidates scored yet. Go to Score Resume to add candidates.
+            No candidates scored yet.
           </p>
         </div>
       ) : (
         <>
-          {/* Summary */}
+          {/* Summary stats */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginBottom: '24px' }}>
             {[
               { label: 'TOTAL CANDIDATES', value: rankings?.total_candidates },
@@ -117,7 +117,7 @@ export default function Rankings() {
                   </div>
 
                   <div style={{ flex: 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
                       <span style={{ fontSize: '12px', color: '#6b5e47', letterSpacing: '0.5px' }}>
                         Candidate #{candidate.candidate_id}
                       </span>
@@ -126,6 +126,16 @@ export default function Rankings() {
                         Skill {candidate.skill_score.toFixed(0)} · Semantic {candidate.semantic_score.toFixed(0)} · Exp {candidate.experience_score.toFixed(0)}
                       </span>
                     </div>
+
+                    {/* AI one-line summary */}
+                    {candidate.candidate_summary && (
+                      <p style={{
+                        fontSize: '13px', color: '#4a3c2a', margin: '0 0 8px',
+                        fontStyle: 'italic', lineHeight: '1.4',
+                      }}>
+                        "{candidate.candidate_summary}"
+                      </p>
+                    )}
 
                     {/* Skill tags */}
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>

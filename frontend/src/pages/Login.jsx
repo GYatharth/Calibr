@@ -21,7 +21,9 @@ export default function Login() {
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
       })
       localStorage.setItem('access_token', res.data.access_token)
-      navigate('/dashboard')
+      localStorage.setItem('user_role', res.data.role)
+      // Redirect based on role
+      navigate(res.data.role === 'recruiter' ? '/dashboard' : '/candidate')
     } catch (err) {
       setError(err.response?.data?.detail || 'Login failed')
     } finally {
@@ -36,30 +38,23 @@ export default function Login() {
     }}>
       <div style={{ width: '100%', maxWidth: '400px' }}>
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-          <h1 style={{
-            fontFamily: 'Georgia, serif', fontSize: '36px',
-            color: '#2c2416', letterSpacing: '4px', margin: 0
-          }}>CALIBR</h1>
+          <h1 style={{ fontFamily: 'Georgia, serif', fontSize: '36px', color: '#2c2416', letterSpacing: '4px', margin: 0 }}>
+            CALIBR
+          </h1>
           <p style={{ color: '#9c8e76', fontSize: '13px', marginTop: '6px', letterSpacing: '1px' }}>
             HYBRID RESUME SCREENING
           </p>
         </div>
 
-        <div style={{
-          background: '#e5dfd2', borderRadius: '8px',
-          padding: '32px', border: '1px solid #c8bea8'
-        }}>
-          <h2 style={{
-            fontFamily: 'Georgia, serif', fontSize: '18px',
-            color: '#2c2416', marginTop: 0, marginBottom: '24px'
-          }}>Sign in</h2>
+        <div style={{ background: '#e5dfd2', borderRadius: '8px', padding: '32px', border: '1px solid #c8bea8' }}>
+          <h2 style={{ fontFamily: 'Georgia, serif', fontSize: '18px', color: '#2c2416', marginTop: 0, marginBottom: '24px' }}>
+            Sign in
+          </h2>
 
           {error && (
-            <div style={{
-              background: '#f5e8e5', border: '1px solid #c8a898',
-              color: '#8b3a2a', padding: '10px 14px',
-              borderRadius: '6px', fontSize: '13px', marginBottom: '16px'
-            }}>{error}</div>
+            <div style={{ background: '#f5e8e5', border: '1px solid #c8a898', color: '#8b3a2a', padding: '10px 14px', borderRadius: '6px', fontSize: '13px', marginBottom: '16px' }}>
+              {error}
+            </div>
           )}
 
           <form onSubmit={handleLogin}>
@@ -73,8 +68,7 @@ export default function Login() {
                 style={{
                   width: '100%', background: '#f0ebe0', border: '1px solid #c8bea8',
                   borderRadius: '6px', padding: '10px 12px', fontSize: '14px',
-                  color: '#2c2416', outline: 'none', boxSizing: 'border-box',
-                  fontFamily: 'system-ui, sans-serif'
+                  color: '#2c2416', outline: 'none', boxSizing: 'border-box'
                 }}
               />
             </div>
@@ -88,8 +82,7 @@ export default function Login() {
                 style={{
                   width: '100%', background: '#f0ebe0', border: '1px solid #c8bea8',
                   borderRadius: '6px', padding: '10px 12px', fontSize: '14px',
-                  color: '#2c2416', outline: 'none', boxSizing: 'border-box',
-                  fontFamily: 'system-ui, sans-serif'
+                  color: '#2c2416', outline: 'none', boxSizing: 'border-box'
                 }}
               />
             </div>
@@ -108,9 +101,7 @@ export default function Login() {
 
           <p style={{ textAlign: 'center', color: '#9c8e76', fontSize: '13px', marginTop: '20px', marginBottom: 0 }}>
             No account?{' '}
-            <Link to="/signup" style={{ color: '#6b5e47', textDecoration: 'underline' }}>
-              Sign up
-            </Link>
+            <Link to="/signup" style={{ color: '#6b5e47', textDecoration: 'underline' }}>Sign up</Link>
           </p>
         </div>
       </div>

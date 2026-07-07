@@ -1,5 +1,5 @@
 """
-Day 20: Single-resume scoring endpoint with rate limiting.
+Day 20: Single-resume scoring endpoint with rate limiting and candidate summary.
 """
 
 import sys
@@ -19,7 +19,7 @@ from app.db import models
 from parse_jd import parse_job_description
 from parse_resume import parse_resume
 from composite_score import compute_composite_score
-from explainer import generate_explanation
+from explainer import generate_explanation, generate_candidate_summary
 from semantic_similarity import semantic_similarity_score
 
 router = APIRouter(prefix="/score", tags=["scoring"])
@@ -56,7 +56,10 @@ def score_resume(
         score_data = compute_composite_score(
             resume_data, jd_data, sem_result["semantic_score"]
         )
+
+        # Generate explanation and one-line summary
         explanation = generate_explanation(score_data, jd_data)
+        summary = generate_candidate_summary(score_data, resume_data)
 
         candidate = models.Candidate(
             jd_id=body.jd_id,
@@ -84,6 +87,7 @@ def score_resume(
         exp_record = models.Explanation(
             score_id=score.id,
             explanation_text=explanation,
+            candidate_summary=summary,
             missing_skills=score_data["missing_skills"],
         )
         db.add(exp_record)

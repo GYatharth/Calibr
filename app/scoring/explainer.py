@@ -113,6 +113,46 @@ def generate_explanation(score_data: dict, jd_data: dict) -> str:
     except Exception as e:
         return f"[error] Groq API call failed: {e}"
 
+def generate_candidate_summary(score_data: dict, resume_data: dict) -> str:
+    """
+    Generates a one-sentence recruiter-facing candidate summary.
+    Focuses on: experience level, strongest skills, key gaps.
+    Much shorter than the full explanation — designed to appear
+    inline in rankings without overwhelming the recruiter.
+    """
+    api_key = os.getenv("GROQ_API_KEY")
+    if not api_key:
+        return "Summary unavailable."
+
+    client = Groq(api_key=api_key)
+
+    total_months = resume_data.get("total_experience_months", 0)
+    years = round(total_months / 12, 1) if total_months else 0
+    matched = ", ".join(score_data["matched_skills"][:5]) or "none"
+    missing = ", ".join(score_data["missing_skills"][:3]) or "none"
+
+    prompt = f"""Write a single sentence (max 20 words) summarizing this candidate for a recruiter.
+Focus on: experience level, top matched skills, biggest gap.
+
+Data:
+- Experience: {years} years
+- Matched skills: {matched}
+- Missing skills: {missing}
+- Composite score: {score_data['composite_score']}/100
+
+Write ONLY the one sentence. No prefix, no punctuation at start, no explanation."""
+
+    try:
+        response = client.chat.completions.create(
+            model="llama-3.1-8b-instant",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=60,
+            temperature=0.3,
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        return f"Score: {score_data['composite_score']}/100"
+
 
 if __name__ == "__main__":
     from semantic_similarity import semantic_similarity_score

@@ -5,6 +5,7 @@ import client from '../api/client'
 export default function Signup() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [role, setRole] = useState('recruiter')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
@@ -14,7 +15,7 @@ export default function Signup() {
     setLoading(true)
     setError('')
     try {
-      await client.post('/auth/signup', { email, password })
+      await client.post('/auth/signup', { email, password, role })
       const formData = new URLSearchParams()
       formData.append('username', email)
       formData.append('password', password)
@@ -22,7 +23,8 @@ export default function Signup() {
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
       })
       localStorage.setItem('access_token', res.data.access_token)
-      navigate('/dashboard')
+      localStorage.setItem('user_role', res.data.role)
+      navigate(res.data.role === 'recruiter' ? '/dashboard' : '/candidate')
     } catch (err) {
       setError(err.response?.data?.detail || 'Signup failed')
     } finally {
@@ -35,32 +37,53 @@ export default function Signup() {
       minHeight: '100vh', background: '#f0ebe0',
       display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px'
     }}>
-      <div style={{ width: '100%', maxWidth: '400px' }}>
+      <div style={{ width: '100%', maxWidth: '420px' }}>
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-          <h1 style={{
-            fontFamily: 'Georgia, serif', fontSize: '36px',
-            color: '#2c2416', letterSpacing: '4px', margin: 0
-          }}>CALIBR</h1>
+          <h1 style={{ fontFamily: 'Georgia, serif', fontSize: '36px', color: '#2c2416', letterSpacing: '4px', margin: 0 }}>
+            CALIBR
+          </h1>
           <p style={{ color: '#9c8e76', fontSize: '13px', marginTop: '6px', letterSpacing: '1px' }}>
             HYBRID RESUME SCREENING
           </p>
         </div>
 
-        <div style={{
-          background: '#e5dfd2', borderRadius: '8px',
-          padding: '32px', border: '1px solid #c8bea8'
-        }}>
-          <h2 style={{
-            fontFamily: 'Georgia, serif', fontSize: '18px',
-            color: '#2c2416', marginTop: 0, marginBottom: '24px'
-          }}>Create account</h2>
+        <div style={{ background: '#e5dfd2', borderRadius: '8px', padding: '32px', border: '1px solid #c8bea8' }}>
+          <h2 style={{ fontFamily: 'Georgia, serif', fontSize: '18px', color: '#2c2416', marginTop: 0, marginBottom: '24px' }}>
+            Create account
+          </h2>
+
+          {/* Role selector */}
+          <div style={{ marginBottom: '20px' }}>
+            <label style={{ display: 'block', fontSize: '11px', color: '#6b5e47', letterSpacing: '1px', marginBottom: '8px' }}>
+              I AM A
+            </label>
+            <div style={{ display: 'flex', border: '1px solid #c8bea8', borderRadius: '6px', overflow: 'hidden' }}>
+              {['recruiter', 'candidate'].map(r => (
+                <button
+                  key={r} type="button" onClick={() => setRole(r)}
+                  style={{
+                    flex: 1, padding: '10px', fontSize: '12px',
+                    letterSpacing: '1px', border: 'none', cursor: 'pointer',
+                    background: role === r ? '#2c2416' : '#f0ebe0',
+                    color: role === r ? '#f0ebe0' : '#6b5e47',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  {r === 'recruiter' ? '👔 Recruiter' : '👤 Candidate'}
+                </button>
+              ))}
+            </div>
+            <p style={{ fontSize: '11px', color: '#9c8e76', marginTop: '6px', marginBottom: 0 }}>
+              {role === 'recruiter'
+                ? 'Upload JDs, screen candidates, view rankings'
+                : 'Check your resume against job descriptions'}
+            </p>
+          </div>
 
           {error && (
-            <div style={{
-              background: '#f5e8e5', border: '1px solid #c8a898',
-              color: '#8b3a2a', padding: '10px 14px',
-              borderRadius: '6px', fontSize: '13px', marginBottom: '16px'
-            }}>{error}</div>
+            <div style={{ background: '#f5e8e5', border: '1px solid #c8a898', color: '#8b3a2a', padding: '10px 14px', borderRadius: '6px', fontSize: '13px', marginBottom: '16px' }}>
+              {error}
+            </div>
           )}
 
           <form onSubmit={handleSignup}>
@@ -101,15 +124,13 @@ export default function Signup() {
                 letterSpacing: '2px', cursor: loading ? 'default' : 'pointer',
               }}
             >
-              {loading ? 'CREATING...' : 'CREATE ACCOUNT'}
+              {loading ? 'CREATING...' : `CREATE ${role.toUpperCase()} ACCOUNT`}
             </button>
           </form>
 
           <p style={{ textAlign: 'center', color: '#9c8e76', fontSize: '13px', marginTop: '20px', marginBottom: 0 }}>
             Already have an account?{' '}
-            <Link to="/login" style={{ color: '#6b5e47', textDecoration: 'underline' }}>
-              Sign in
-            </Link>
+            <Link to="/login" style={{ color: '#6b5e47', textDecoration: 'underline' }}>Sign in</Link>
           </p>
         </div>
       </div>
