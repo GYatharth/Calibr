@@ -262,6 +262,98 @@ Respond ONLY in this exact JSON format, no other text:
     except Exception as e:
         return [{"skill": s, "why_important": "Required for this role", "search_queries": [f"learn {s} tutorial", f"{s} for beginners free course"]} for s in missing_skills[:4]]
 
+
+def generate_resume_improvements(resume_data: dict, score_data: dict, jd_data: dict, resume_text: str = "") -> dict:
+    """
+    Comprehensive ATS optimization analysis covering:
+    - Missing skills & keywords
+    - Weak bullet points → stronger rewrites
+    - Quantification suggestions
+    - Missing sections detection
+    - Action verb improvements
+    - Experience gap analysis
+    - Certification recommendations
+    Returns a structured improvement report.
+    """
+    api_key = os.getenv("GROQ_API_KEY")
+    if not api_key:
+        return {"improvements": [], "priority_plan": []}
+
+    client = Groq(api_key=api_key)
+
+    # Collect data
+    all_bullets = []
+    for exp in resume_data.get("experience", []):
+        for bullet in exp.get("bullets", []):
+            all_bullets.append(bullet)
+
+    missing_skills = score_data.get("missing_skills", [])[:8]
+    matched_skills = score_data.get("matched_skills", [])[:8]
+    required_skills = jd_data.get("required_skills", [])[:10]
+    total_months = resume_data.get("total_experience_months", 0)
+    certifications = resume_data.get("certifications", [])
+    projects = resume_data.get("projects", [])
+    education = resume_data.get("education", [])
+    contact = resume_data.get("contact", {})
+
+    bullets_text = "\n".join([f"- {b}" for b in all_bullets[:8]]) or "No bullets found"
+    projects_text = ", ".join([p.get("name", "") for p in projects[:5]]) or "None"
+
+    prompt = f"""You are an expert ATS resume coach. Analyze this candidate's resume against a job description and provide specific improvements.
+
+RESUME DATA:
+- Skills: {', '.join(matched_skills) or 'none detected'}
+- Missing skills: {', '.join(missing_skills) or 'none'}
+- JD required: {', '.join(required_skills) or 'none'}
+- Experience: {total_months} months
+- Current bullets:
+{bullets_text}
+- Projects: {projects_text}
+- Certifications: {', '.join(certifications) if certifications else 'none'}
+- Has LinkedIn: {'yes' if contact.get('linkedin') else 'no'}
+- Has GitHub: {'yes' if contact.get('github') else 'no'}
+- ATS Score: {score_data.get('composite_score', 0)}/100
+
+Provide a comprehensive ATS improvement report in this EXACT JSON format:
+{{
+  "bullet_rewrites": [
+    {{"original": "original bullet", "improved": "improved bullet with action verb + metrics", "reason": "why this is better"}}
+  ],
+  "missing_keywords": [
+    {{"keyword": "keyword name", "suggestion": "how to naturally add it to resume"}}
+  ],
+  "missing_sections": ["list of missing sections like Professional Summary, GitHub, etc"],
+  "quick_wins": ["list of 3-5 specific quick improvements they can make today"],
+  "priority_plan": [
+    {{"priority": 1, "action": "specific action", "impact": "high/medium/low"}}
+  ]
+}}
+
+Be specific and actionable. Improve all {min(len(all_bullets), 6)} bullets. Identify real gaps."""
+
+    try:
+        response = client.chat.completions.create(
+            model="llama-3.1-8b-instant",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=1200,
+            temperature=0.4,
+        )
+        text = response.choices[0].message.content.strip()
+        text = text.replace("```json", "").replace("```", "").strip()
+        import json
+        result = json.loads(text)
+        return result
+    except Exception as e:
+        return {
+            "bullet_rewrites": [],
+            "missing_keywords": [],
+            "missing_sections": [],
+            "quick_wins": ["Add quantifiable metrics to your bullet points",
+                          "Include missing skills in your skills section",
+                          "Add LinkedIn and GitHub profile links"],
+            "priority_plan": [{"priority": 1, "action": "Add missing skills to resume", "impact": "high"}]
+        }
+
 if __name__ == "__main__":
     from semantic_similarity import semantic_similarity_score
 

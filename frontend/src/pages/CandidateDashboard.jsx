@@ -18,6 +18,8 @@ export default function CandidateDashboard() {
   const [skillGap, setSkillGap] = useState(null)
   const [loadingGap, setLoadingGap] = useState(false)
   const [parsedData, setParsedData] = useState(null)
+  const [improvements, setImprovements] = useState(null)
+  const [loadingImprovements, setLoadingImprovements] = useState(false)
 
   useEffect(() => {
     fetchJds()
@@ -75,6 +77,7 @@ export default function CandidateDashboard() {
     setError('')
     setResult(null)
     setQuestions(null)
+    setImprovements(null)
     try {
       const res = await client.post('/score', {
         jd_id: parseInt(jdId),
@@ -110,6 +113,19 @@ export default function CandidateDashboard() {
       console.error('Failed to load skill gap')
     } finally {
       setLoadingGap(false)
+    }
+  }
+
+  async function fetchImprovements() {
+    if (!result?.candidate_id) return
+    setLoadingImprovements(true)
+    try {
+      const res = await client.get(`/improve/${result.candidate_id}`)
+      setImprovements(res.data)
+    } catch (err) {
+      setError('Failed to generate resume improvements')
+    } finally {
+      setLoadingImprovements(false)
     }
   }
 
@@ -545,6 +561,156 @@ export default function CandidateDashboard() {
                     questions={questions.behavioral}
                     color="#2c2416" bg="#f0ebe0" border="#c8bea8"
                   />
+                </>
+              )}
+            </div>
+
+            {/* Resume Improvement */}
+            <div style={card}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: improvements ? '20px' : '0' }}>
+                <div>
+                  <h3 style={{ fontFamily: 'Georgia, serif', color: '#2c2416', margin: 0, fontSize: '16px' }}>
+                    ATS Resume Optimizer
+                  </h3>
+                  <p style={{ color: '#9c8e76', fontSize: '12px', margin: '4px 0 0' }}>
+                    Comprehensive analysis — bullet rewrites, missing keywords, quick wins
+                  </p>
+                </div>
+                {!improvements && (
+                  <button
+                    onClick={fetchImprovements}
+                    disabled={loadingImprovements}
+                    style={{
+                      background: loadingImprovements ? '#9c8e76' : '#2c2416',
+                      color: '#f0ebe0', border: 'none', borderRadius: '6px',
+                      padding: '8px 18px', fontSize: '11px', letterSpacing: '1px',
+                      cursor: loadingImprovements ? 'default' : 'pointer', whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {loadingImprovements ? 'ANALYSING...' : 'OPTIMISE RESUME'}
+                  </button>
+                )}
+              </div>
+
+              {improvements && (
+                <>
+                  {/* Priority Plan */}
+                  {improvements.priority_plan?.length > 0 && (
+                    <div style={{ marginBottom: '20px' }}>
+                      <p style={{ fontSize: '11px', color: '#6b5e47', letterSpacing: '1px', margin: '0 0 10px', fontWeight: '500' }}>
+                        PRIORITY ACTION PLAN
+                      </p>
+                      {improvements.priority_plan.map((item, i) => (
+                        <div key={i} style={{
+                          display: 'flex', alignItems: 'center', gap: '10px',
+                          padding: '8px 12px', marginBottom: '6px',
+                          background: '#f0ebe0', borderRadius: '6px',
+                          border: '1px solid #c8bea8'
+                        }}>
+                          <span style={{
+                            width: '22px', height: '22px', borderRadius: '50%',
+                            background: '#2c2416', color: '#f0ebe0',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: '11px', fontWeight: '500', flexShrink: 0
+                          }}>{item.priority}</span>
+                          <span style={{ fontSize: '13px', color: '#2c2416', flex: 1 }}>{item.action}</span>
+                          <span style={{
+                            fontSize: '10px', letterSpacing: '0.5px',
+                            padding: '2px 6px', borderRadius: '3px',
+                            background: item.impact === 'high' ? '#e8f0e5' : item.impact === 'medium' ? '#f0ece0' : '#f5e8e5',
+                            color: item.impact === 'high' ? '#3a6b2a' : item.impact === 'medium' ? '#8b7a2a' : '#8b3a2a',
+                            border: `1px solid ${item.impact === 'high' ? '#a8c8a0' : item.impact === 'medium' ? '#c8c0a0' : '#c8a898'}`,
+                          }}>{item.impact} impact</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Quick wins */}
+                  {improvements.quick_wins?.length > 0 && (
+                    <div style={{ marginBottom: '20px' }}>
+                      <p style={{ fontSize: '11px', color: '#6b5e47', letterSpacing: '1px', margin: '0 0 10px', fontWeight: '500' }}>
+                        QUICK WINS
+                      </p>
+                      {improvements.quick_wins.map((win, i) => (
+                        <div key={i} style={{ display: 'flex', gap: '8px', marginBottom: '6px' }}>
+                          <span style={{ color: '#3a6b2a', fontSize: '13px' }}>✓</span>
+                          <span style={{ fontSize: '13px', color: '#4a3c2a' }}>{win}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Missing sections */}
+                  {improvements.missing_sections?.length > 0 && (
+                    <div style={{ marginBottom: '20px' }}>
+                      <p style={{ fontSize: '11px', color: '#6b5e47', letterSpacing: '1px', margin: '0 0 10px', fontWeight: '500' }}>
+                        MISSING SECTIONS
+                      </p>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                        {improvements.missing_sections.map((section, i) => (
+                          <span key={i} style={{
+                            background: '#f5e8e5', border: '1px solid #c8a898',
+                            borderRadius: '4px', padding: '3px 8px',
+                            fontSize: '11px', color: '#8b3a2a'
+                          }}>+ {section}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Missing keywords */}
+                  {improvements.missing_keywords?.length > 0 && (
+                    <div style={{ marginBottom: '20px' }}>
+                      <p style={{ fontSize: '11px', color: '#6b5e47', letterSpacing: '1px', margin: '0 0 10px', fontWeight: '500' }}>
+                        MISSING KEYWORDS
+                      </p>
+                      {improvements.missing_keywords.map((kw, i) => (
+                        <div key={i} style={{
+                          background: '#f0ebe0', border: '1px solid #c8bea8',
+                          borderRadius: '6px', padding: '10px 12px', marginBottom: '6px'
+                        }}>
+                          <span style={{
+                            background: '#f5e8e5', border: '1px solid #c8a898',
+                            borderRadius: '3px', padding: '1px 7px',
+                            fontSize: '11px', color: '#8b3a2a', marginRight: '8px'
+                          }}>{kw.keyword}</span>
+                          <span style={{ fontSize: '12px', color: '#6b5e47' }}>{kw.suggestion}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Bullet rewrites */}
+                  {improvements.bullet_rewrites?.length > 0 && (
+                    <div>
+                      <p style={{ fontSize: '11px', color: '#6b5e47', letterSpacing: '1px', margin: '0 0 10px', fontWeight: '500' }}>
+                        BULLET REWRITES
+                      </p>
+                      {improvements.bullet_rewrites.map((item, i) => (
+                        <div key={i} style={{
+                          marginBottom: '14px', paddingBottom: '14px',
+                          borderBottom: i < improvements.bullet_rewrites.length - 1 ? '1px solid #c8bea8' : 'none'
+                        }}>
+                          <div style={{ display: 'flex', gap: '8px', marginBottom: '6px' }}>
+                            <span style={{ fontSize: '10px', color: '#8b3a2a', marginTop: '2px' }}>✗</span>
+                            <p style={{ fontSize: '12px', color: '#8b3a2a', margin: 0, textDecoration: 'line-through' }}>
+                              {item.original}
+                            </p>
+                          </div>
+                          <div style={{ display: 'flex', gap: '8px', marginBottom: '4px' }}>
+                            <span style={{ fontSize: '10px', color: '#3a6b2a', marginTop: '2px' }}>✓</span>
+                            <p style={{ fontSize: '13px', color: '#3a6b2a', margin: 0, fontWeight: '500' }}>
+                              {item.improved}
+                            </p>
+                          </div>
+                          <p style={{ fontSize: '11px', color: '#9c8e76', margin: '4px 0 0 18px', fontStyle: 'italic' }}>
+                            {item.reason}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </>
               )}
             </div>
