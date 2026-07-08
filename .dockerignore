@@ -1,0 +1,13 @@
+venv/
+__pycache__/
+*.pyc
+.env
+.git/
+frontend/node_modules/
+frontend/dist/
+*.log
+.gitignore
+validation_notes.md
+sample_data/
+measure_timing.py
+fix_sequences.py
