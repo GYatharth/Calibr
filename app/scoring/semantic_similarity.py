@@ -27,11 +27,16 @@ from parse_jd import parse_job_description
 from parse_resume import parse_resume
 from extract_pdf import extract_resume_text
 
-# Load model once at module level — expensive to reload per call.
+# Lazy loading — only loads when first needed.
 # First run downloads ~80MB to ~/.cache/huggingface/
-print("[info] Loading sentence-transformer model (first run downloads ~80MB)...")
-MODEL = SentenceTransformer("all-MiniLM-L6-v2")
-print("[info] Model loaded.")
+_MODEL = None
+
+
+def get_model():
+    global _MODEL
+    if _MODEL is None:
+        _MODEL = SentenceTransformer("all-MiniLM-L6-v2")
+    return _MODEL
 
 
 def build_resume_text_for_embedding(resume_data: dict) -> str:
@@ -95,8 +100,9 @@ def semantic_similarity_score(
     jd_text = build_jd_text_for_embedding(jd_data)
 
     # Generate embeddings — returns a tensor per text
-    resume_embedding = MODEL.encode(resume_text, convert_to_tensor=True)
-    jd_embedding = MODEL.encode(jd_text, convert_to_tensor=True)
+    model = get_model()  # loads only when called
+    resume_embedding = model.encode(resume_text, convert_to_tensor=True)
+    jd_embedding = model.encode(jd_text, convert_to_tensor=True)
 
     # Cosine similarity returns a value between -1 and 1.
     # In practice for these texts it'll be between 0 and 1.
@@ -111,8 +117,6 @@ def semantic_similarity_score(
 
 
 if __name__ == "__main__":
-    import json
-
     sample_jd = """
     Backend Engineer, 2-4 years experience.
 
@@ -130,10 +134,3 @@ if __name__ == "__main__":
     resume_data = parse_resume(raw_text)
 
     result = semantic_similarity_score(resume_data, jd_data)
-
-    print("=" * 60)
-    print("Semantic similarity result")
-    print("=" * 60)
-    print(f"Resume text (for embedding): {build_resume_text_for_embedding(resume_data)[:120]}...")
-    print()
-    print(json.dumps(result, indent=2))
