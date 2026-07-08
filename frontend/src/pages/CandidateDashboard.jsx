@@ -17,6 +17,7 @@ export default function CandidateDashboard() {
   const [loadingQ, setLoadingQ] = useState(false)
   const [skillGap, setSkillGap] = useState(null)
   const [loadingGap, setLoadingGap] = useState(false)
+  const [parsedData, setParsedData] = useState(null)
 
   useEffect(() => {
     fetchJds()
@@ -48,6 +49,7 @@ export default function CandidateDashboard() {
     setExtracting(true)
     setError('')
     setExtractedFilename(selected.name)
+    setParsedData(null)
     try {
       const formData = new FormData()
       formData.append('file', selected)
@@ -55,6 +57,7 @@ export default function CandidateDashboard() {
         headers: { 'Content-Type': 'multipart/form-data' }
       })
       setExtractedText(res.data.extracted_text)
+      setParsedData(res.data.parsed)
       setFile(selected)
     } catch (err) {
       setError('PDF extraction failed')
@@ -213,6 +216,118 @@ export default function CandidateDashboard() {
                 )}
               </label>
             </div>
+
+            {/* Parsed resume data */}
+            {parsedData && (
+              <div style={{
+                background: '#f0ebe0', border: '1px solid #c8bea8',
+                borderRadius: '8px', padding: '20px', marginBottom: '20px',
+              }}>
+                <p style={{ fontSize: '11px', color: '#6b5e47', letterSpacing: '1px', margin: '0 0 16px', fontWeight: '500' }}>
+                  EXTRACTED FROM YOUR RESUME
+                </p>
+
+                {/* Contact Info */}
+                {parsedData.contact && (parsedData.contact.name || parsedData.contact.email) && (
+                  <div style={{ marginBottom: '16px', paddingBottom: '16px', borderBottom: '1px solid #c8bea8' }}>
+                    {parsedData.contact.name && (
+                      <p style={{ fontFamily: 'Georgia, serif', fontSize: '18px', color: '#2c2416', margin: '0 0 6px', fontWeight: '500' }}>
+                        {parsedData.contact.name}
+                      </p>
+                    )}
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
+                      {parsedData.contact.email && (
+                        <span style={{ fontSize: '12px', color: '#6b5e47' }}>✉ {parsedData.contact.email}</span>
+                      )}
+                      {parsedData.contact.phone && (
+                        <span style={{ fontSize: '12px', color: '#6b5e47' }}>📞 {parsedData.contact.phone}</span>
+                      )}
+                      {parsedData.contact.linkedin && (
+                        <span style={{ fontSize: '12px', color: '#6b5e47' }}>🔗 {parsedData.contact.linkedin}</span>
+                      )}
+                      {parsedData.contact.github && (
+                        <span style={{ fontSize: '12px', color: '#6b5e47' }}>⌥ {parsedData.contact.github}</span>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Experience */}
+                {parsedData.experience.length > 0 && (
+                  <div style={{ marginBottom: '16px', paddingBottom: '16px', borderBottom: '1px solid #c8bea8' }}>
+                    <p style={{ fontSize: '11px', color: '#9c8e76', letterSpacing: '1px', margin: '0 0 8px' }}>
+                      EXPERIENCE · {parsedData.total_experience_months} months total
+                    </p>
+                    {parsedData.experience.map((exp, i) => (
+                      <div key={i} style={{ marginBottom: '10px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span style={{ fontSize: '13px', color: '#2c2416', fontWeight: '500' }}>{exp.title_line}</span>
+                          <span style={{ fontSize: '11px', color: '#9c8e76' }}>{exp.duration_months} months</span>
+                        </div>
+                        {exp.bullets.slice(0, 2).map((b, j) => (
+                          <p key={j} style={{ fontSize: '12px', color: '#6b5e47', margin: '2px 0 0 12px' }}>• {b}</p>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Skills */}
+                {parsedData.skills.length > 0 && (
+                  <div style={{ marginBottom: '16px', paddingBottom: '16px', borderBottom: '1px solid #c8bea8' }}>
+                    <p style={{ fontSize: '11px', color: '#9c8e76', letterSpacing: '1px', margin: '0 0 8px' }}>
+                      SKILLS DETECTED ({parsedData.skills.length})
+                    </p>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                      {parsedData.skills.map(s => (
+                        <span key={s} style={{
+                          background: '#e8f0e5', border: '1px solid #a8c8a0',
+                          borderRadius: '3px', padding: '2px 7px',
+                          fontSize: '11px', color: '#3a6b2a'
+                        }}>{s}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Projects */}
+                {parsedData.projects && parsedData.projects.length > 0 && (
+                  <div style={{ marginBottom: '16px', paddingBottom: '16px', borderBottom: '1px solid #c8bea8' }}>
+                    <p style={{ fontSize: '11px', color: '#9c8e76', letterSpacing: '1px', margin: '0 0 8px' }}>
+                      PROJECTS ({parsedData.projects.length})
+                    </p>
+                    {parsedData.projects.map((p, i) => (
+                      <div key={i} style={{ marginBottom: '8px' }}>
+                        <span style={{ fontSize: '13px', color: '#2c2416', fontWeight: '500' }}>{p.name}</span>
+                        {p.bullets.slice(0, 2).map((b, j) => (
+                          <p key={j} style={{ fontSize: '12px', color: '#6b5e47', margin: '2px 0 0 12px' }}>• {b}</p>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Certifications */}
+                {parsedData.certifications && parsedData.certifications.length > 0 && (
+                  <div>
+                    <p style={{ fontSize: '11px', color: '#9c8e76', letterSpacing: '1px', margin: '0 0 8px' }}>
+                      CERTIFICATIONS
+                    </p>
+                    {parsedData.certifications.map((cert, i) => (
+                      <p key={i} style={{ fontSize: '12px', color: '#4a3c2a', margin: '0 0 4px' }}>
+                        🏆 {cert}
+                      </p>
+                    ))}
+                  </div>
+                )}
+
+                {parsedData.skills.length === 0 && parsedData.experience.length === 0 && (
+                  <p style={{ fontSize: '12px', color: '#9c8e76', margin: 0 }}>
+                    Text extracted — structured data could not be fully parsed. Scoring will still work.
+                  </p>
+                )}
+              </div>
+            )}
 
             {/* JD dropdown */}
             <div style={{ marginBottom: '20px' }}>

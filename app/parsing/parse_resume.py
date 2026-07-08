@@ -161,17 +161,119 @@ def extract_education_entries(education_section_text: str) -> list[dict]:
     return entries
 
 
+def extract_contact_info(resume_text: str) -> dict:
+    """
+    Extracts name, email, phone, and LinkedIn/GitHub from resume text.
+    Uses regex patterns — works on most standard resume formats.
+    """
+    # Email
+    email_pattern = re.compile(r'[\w\.-]+@[\w\.-]+\.\w+')
+    email = email_pattern.search(resume_text)
+
+    # Phone (handles +91, spaces, dashes, brackets)
+    phone_pattern = re.compile(
+        r'(\+?\d{1,3}[\s\-]?)?(\(?\d{3}\)?[\s\-]?)(\d{3}[\s\-]?\d{4}|\d{4}[\s\-]?\d{4})'
+    )
+    phone = phone_pattern.search(resume_text)
+
+    # LinkedIn
+    linkedin_pattern = re.compile(r'linkedin\.com/in/[\w\-]+', re.IGNORECASE)
+    linkedin = linkedin_pattern.search(resume_text)
+
+    # GitHub
+    github_pattern = re.compile(r'github\.com/[\w\-]+', re.IGNORECASE)
+    github = github_pattern.search(resume_text)
+
+    # Name — first non-empty line that isn't an email/phone/URL
+    name = None
+    for line in resume_text.split('\n'):
+        line = line.strip()
+        if not line:
+            continue
+        if '@' in line or 'http' in line or re.search(r'\d{10}', line):
+            continue
+        if len(line.split()) <= 5 and len(line) > 2:
+            name = line
+            break
+
+    return {
+        "name": name,
+        "email": email.group() if email else None,
+        "phone": phone.group() if phone else None,
+        "linkedin": linkedin.group() if linkedin else None,
+        "github": github.group() if github else None,
+    }
+
+
+def extract_certifications(certifications_section: str) -> list[str]:
+    """
+    Extracts certification names from the CERTIFICATIONS section.
+    Returns a list of certification strings.
+    """
+    lines = [l.strip() for l in certifications_section.split('\n') if l.strip()]
+    certs = []
+    for line in lines:
+        line = line.lstrip('-•*').strip()
+        if line and len(line) > 3:
+            certs.append(line)
+    return certs
+
+
+def extract_projects(projects_section: str) -> list[dict]:
+    """
+    Extracts project entries from the PROJECTS section.
+    Each project: {name, bullets}
+    """
+    lines = [l for l in projects_section.split('\n') if l.strip()]
+    projects = []
+    current_project = None
+    current_bullets = []
+
+    for line in lines:
+        stripped = line.strip()
+        if stripped.startswith('-') or stripped.startswith('•'):
+            current_bullets.append(stripped.lstrip('-•').strip())
+        elif stripped:
+            if current_project:
+                projects.append({
+                    "name": current_project,
+                    "bullets": current_bullets
+                })
+            current_project = stripped
+            current_bullets = []
+
+    if current_project:
+        projects.append({
+            "name": current_project,
+            "bullets": current_bullets
+        })
+
+    return projects
+
+
 def parse_resume(resume_text: str) -> dict:
+    """
+    Main entry point. Returns full structured resume data including
+    contact info, skills, experience, education, certifications, projects.
+    """
     sections = split_into_sections(resume_text)
+
     skills = extract_skills(resume_text)
     experience_entries = extract_experience_entries(sections.get("experience", ""))
     education_entries = extract_education_entries(sections.get("education", ""))
+    contact_info = extract_contact_info(resume_text)
+    certifications = extract_certifications(sections.get("certifications", ""))
+    projects = extract_projects(sections.get("projects", ""))
+
     total_experience_months = sum(e["duration_months"] for e in experience_entries)
 
     return {
+        "contact": contact_info,
         "skills": skills,
         "experience": experience_entries,
         "education": education_entries,
+        "certifications": certifications,
+        "projects": projects,
         "total_experience_months": total_experience_months,
         "used_spacy": _NLP is not None,
     }

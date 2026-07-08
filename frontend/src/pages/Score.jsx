@@ -15,6 +15,7 @@ export default function Score() {
   const [file, setFile] = useState(null)
   const [extracting, setExtracting] = useState(false)
   const [extractedFilename, setExtractedFilename] = useState('')
+  const [parsedData, setParsedData] = useState(null)
 
   async function handleFileChange(e) {
     const selected = e.target.files[0]
@@ -27,6 +28,7 @@ export default function Score() {
     setError('')
     setExtracting(true)
     setExtractedFilename(selected.name)
+    setParsedData(null)
 
     try {
       const formData = new FormData()
@@ -35,6 +37,7 @@ export default function Score() {
         headers: { 'Content-Type': 'multipart/form-data' }
       })
       setResumeText(res.data.extracted_text)
+      setParsedData(res.data.parsed)
     } catch (err) {
       setError(err.response?.data?.detail || 'PDF extraction failed')
       setFile(null)
@@ -195,6 +198,58 @@ export default function Score() {
                     </>
                   )}
                 </label>
+
+                {/* Parsed resume data */}
+                {parsedData && (
+                  <div style={{
+                    background: '#f0ebe0', border: '1px solid #c8bea8',
+                    borderRadius: '8px', padding: '16px', marginTop: '16px',
+                  }}>
+                    <p style={{ fontSize: '11px', color: '#6b5e47', letterSpacing: '1px', margin: '0 0 12px', fontWeight: '500' }}>
+                      EXTRACTED FROM RESUME
+                    </p>
+
+                    {/* Experience */}
+                    {parsedData.experience.length > 0 && (
+                      <div style={{ marginBottom: '12px' }}>
+                        <p style={{ fontSize: '11px', color: '#9c8e76', letterSpacing: '1px', margin: '0 0 6px' }}>EXPERIENCE</p>
+                        {parsedData.experience.map((exp, i) => (
+                          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                            <span style={{ fontSize: '12px', color: '#4a3c2a' }}>{exp.title_line}</span>
+                            <span style={{ fontSize: '11px', color: '#9c8e76' }}>{exp.duration_months} months</span>
+                          </div>
+                        ))}
+                        <p style={{ fontSize: '11px', color: '#9c8e76', margin: '6px 0 0' }}>
+                          Total: {parsedData.total_experience_months} months ({(parsedData.total_experience_months / 12).toFixed(1)} years)
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Skills */}
+                    {parsedData.skills.length > 0 && (
+                      <div style={{ marginBottom: '8px' }}>
+                        <p style={{ fontSize: '11px', color: '#9c8e76', letterSpacing: '1px', margin: '0 0 6px' }}>
+                          SKILLS DETECTED ({parsedData.skills.length})
+                        </p>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                          {parsedData.skills.map(s => (
+                            <span key={s} style={{
+                              background: '#e8f0e5', border: '1px solid #a8c8a0',
+                              borderRadius: '3px', padding: '2px 7px',
+                              fontSize: '11px', color: '#3a6b2a'
+                            }}>{s}</span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {parsedData.skills.length === 0 && parsedData.experience.length === 0 && (
+                      <p style={{ fontSize: '12px', color: '#9c8e76', margin: 0 }}>
+                        Text extracted but structured data could not be parsed — scoring will still work.
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 
