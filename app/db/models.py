@@ -52,6 +52,7 @@ class Candidate(Base):
 
     id                     = Column(Integer, primary_key=True, index=True)
     jd_id                  = Column(Integer, ForeignKey("job_descriptions.id"), nullable=False)
+    user_id                = Column(Integer, ForeignKey("users.id"), nullable=True)
     raw_resume_text        = Column(Text)
     extracted_skills       = Column(JSON)
     extracted_experience   = Column(JSON)

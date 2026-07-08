@@ -66,6 +66,7 @@ def score_resume(
 
         candidate = models.Candidate(
             jd_id=body.jd_id,
+            user_id=current_user.id,
             raw_resume_text=body.resume_text,
             extracted_skills=resume_data["skills"],
             extracted_experience=resume_data["experience"],

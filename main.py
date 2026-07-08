@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.db.database import engine, Base, SessionLocal
@@ -26,8 +27,21 @@ from app.api.notes_router import router as notes_router
 from app.api.skill_gap_router import router as skill_gap_router
 from app.api.analytics_router import router as analytics_router
 from app.api.resume_improve_router import router as resume_improve_router
+from app.api.history_router import router as history_router
 
 Base.metadata.create_all(bind=engine)
+
+
+def run_migrations():
+    """
+    create_all() only creates missing tables — it never alters existing
+    ones. Columns added to models after the table already exists in the
+    Neon DB need an explicit ALTER TABLE here.
+    """
+    with engine.begin() as conn:
+        conn.execute(text(
+            "ALTER TABLE candidates ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES users(id)"
+        ))
 
 
 def create_default_jd():
@@ -82,6 +96,7 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 @app.on_event("startup")
 def startup_event():
+    run_migrations()
     create_default_jd()
 
 
@@ -98,6 +113,7 @@ app.include_router(notes_router)
 app.include_router(skill_gap_router)
 app.include_router(analytics_router)
 app.include_router(resume_improve_router)
+app.include_router(history_router)
 
 @app.get("/")
 def root():

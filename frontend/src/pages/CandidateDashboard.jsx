@@ -171,6 +171,12 @@ export default function CandidateDashboard() {
           CALIBR
         </span>
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <span
+            onClick={() => navigate('/history')}
+            style={{ fontSize: '13px', color: '#6b5e47', cursor: 'pointer', letterSpacing: '1px' }}
+          >
+            HISTORY
+          </span>
           <span style={{
             fontSize: '11px', color: '#9c8e76', letterSpacing: '1px',
             background: '#f0ebe0', padding: '3px 10px',

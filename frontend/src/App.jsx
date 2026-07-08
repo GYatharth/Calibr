@@ -8,6 +8,7 @@ import Breakdown from './pages/Breakdown'
 import Batch from './pages/Batch'
 import CandidateDashboard from './pages/CandidateDashboard'
 import Analytics from './pages/Analytics'
+import History from './pages/History'
 
 function PrivateRoute({ children, requiredRole }) {
   const token = localStorage.getItem('access_token')
@@ -36,6 +37,7 @@ export default function App() {
 
         {/* Candidate routes */}
         <Route path="/candidate" element={<PrivateRoute requiredRole="candidate"><CandidateDashboard /></PrivateRoute>} />
+        <Route path="/history" element={<PrivateRoute requiredRole="candidate"><History /></PrivateRoute>} />
 
         <Route path="*" element={<Navigate to="/login" />} />
       </Routes>
