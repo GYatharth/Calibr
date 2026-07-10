@@ -1,28 +1,11 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-:root {
-  --bg-page: #f0ebe0;
-  --bg-card: #e5dfd2;
-  --bg-card-hover: #ddd6c7;
-  --border: #c8bea8;
-  --border-strong: #a89880;
-  --text-primary: #2c2416;
-  --text-secondary: #6b5e47;
-  --text-muted: #9c8e76;
-  --accent: #2c2416;
-  --accent-hover: #1a150d;
-  --danger: #8b3a2a;
-  --success: #3a6b2a;
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
 body {
-  background-color: var(--bg-page);
-  color: var(--text-primary);
+  background-color: #f0ebe0;
+  color: #2c2416;
   font-family: system-ui, -apple-system, sans-serif;
-}
-
-h1, h2, h3, .font-serif {
-  font-family: Georgia, 'Times New Roman', serif;
 }
